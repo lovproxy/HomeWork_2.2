@@ -1,14 +1,20 @@
 class Solver():
-    def __init__(self):
-        pass
+    def __init__(self, board, priority):
+        #Инициализация работы класса
+        self.board = board #инициализация доски
+        self.priority = priority #инициализация приоритета
+        self.solution = None
+        self.solution_moves = -1 #инициализация количества шагов требуемых для решения
+        self.solved = False #инициализация решаемости состояния
+        self.search_nodes = 0
 
-    def solver(self, board, priority):
-        pass
+    def isSolvable(self): #проверяет имеет ли начальное состояние решение
+        return self.solved
 
-    def isSolvable(self):
-        return ''
+    def moves(self): # возвращает количество шагов если решение имеется
+        return self.solution_moves if self.solved else -1
 
-    def moves(self):
+    def solve(self): # основной метод реализации алгортим A*
         pass
 
     def __iter__(self):
@@ -17,5 +23,3 @@ class Solver():
     def __next__(self):
         pass
 
-    def solve(self):
-        pass
