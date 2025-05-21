@@ -7,7 +7,7 @@ class BinaryHeap:
 
     def insert(self, item): #добавление в кучу элементов
         self.heap.append(item)
-        self._sift_up(len(self.heap) - 1)
+        self.sift_up(len(self.heap) - 1)
 
     def pop(self): #извлечение элемента с самым высоким приоритетом
         if len(self.heap) == 0: #если длина кучи 0
@@ -17,16 +17,16 @@ class BinaryHeap:
 
         self.heap[0], self.heap[-1] = self.heap[-1], self.heap[0] #меняем местами элементы кучи
         item = self.heap.pop()
-        self._sift_down(0)
+        self.sift_down(0)
         return item #возвращаем кучу
 
-    def _sift_up(self, index): #восстановление приоритетности кучи снизу вверх
+    def sift_up(self, index): #восстановление приоритетности кучи снизу вверх
         parent = (index - 1) // 2
         if parent >= 0 and self.heap[index] < self.heap[parent]:
             self.heap[index], self.heap[parent] = self.heap[parent], self.heap[index]
-            self._sift_up(parent)
+            self.sift_up(parent)
 
-    def _sift_down(self, index):# восстановление приоритетности кучи сверху вниз
+    def sift_down(self, index):# восстановление приоритетности кучи сверху вниз
         left = 2 * index + 1
         right = 2 * index + 2
         smallest = index
@@ -38,7 +38,7 @@ class BinaryHeap:
 
         if smallest != index:
             self.heap[index], self.heap[smallest] = self.heap[smallest], self.heap[index]
-            self._sift_down(smallest)
+            self.sift_down(smallest)
 
 
 class SortedArray:
