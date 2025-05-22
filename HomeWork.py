@@ -1,3 +1,5 @@
+import math
+import numpy as np
 class BinaryHeap:
     def __init__(self): #инициализация кучи
         self.heap = []
@@ -169,3 +171,98 @@ class Solver():
         if not hasattr(self, '_iter'):
             self._iter = iter(self.solution) if self.solution else iter([])
         return next(self._iter)
+
+
+class Board:
+    def __init__(self, blocks):  # создает поле из массива блоков NxN blocks (block[i][j] =
+        # номер блока в i-той строке и j-том столбце)
+        if isinstance(blocks, list):
+            self.N = int(math.sqrt(len(blocks)))
+            self.board = np.ones((self.N, self.N))
+            self.board = self.board.astype(int)
+            for i in range(self.N):
+                line = blocks[self.N * i:self.N * (i + 1)]
+                self.board[i] = line
+        if isinstance(blocks, np.ndarray):
+            self.board = blocks.copy()
+            self.N = blocks.shape[0]
+
+        self.target_board = np.arange(1, self.N * self.N + 1).reshape((self.N, self.N))
+        self.target_board[-1, -1] = 0
+
+        i, j = np.where(self.board == 0)
+        i = int(i[0])
+        j = int(j[0])
+        self.blank_pos = (i, j)
+
+
+    def __str__(self):
+        return str(self.board).replace('[', ' ').replace(']', ' ')
+
+    def dimension(self):# возвращает размер доски N
+        return self.N
+
+    def hamming(self): # возвращает количество отличий от целевой доски
+        mistakes = 0
+        for i in range(self.N - 1):
+            for j in range(self.N):
+                if self.target_board[i][j] != self.board[i][j]:
+                    mistakes += 1
+        for j in range(self.N - 1):
+            if self.target_board[self.N - 1][j] != self.board[self.N - 1][j]:
+                mistakes += 1
+        return mistakes
+
+    def manhattan(self):
+        length = 0
+        for i in range(self.N - 1):
+            for j in range(self.N):
+                elem = self.target_board[i][j]
+                col, row = np.where(self.board == elem)
+                length += abs(i - col[0]) + abs(j - row[0])
+        for j in range(self.N - 1):
+            elem = self.target_board[self.N - 1][j]
+            col, row = np.where(self.board == elem)
+            length += abs(self.N - 1 - col[0]) + abs(j - row[0])
+
+        return length
+
+    # сумма манхэттенских расстояний блоков до целевых позиций
+
+    def isGoal(self): # возвращает Истину, если текущее состояние целевое
+        return np.array_equal(self.board, self.target_board)
+
+    def twin(self): # меняет два соседних блока в строке и возвращает копию доски
+        twin_board = self.board.copy()
+        for i in range(self.N):
+            for j in range(self.N - 1):
+                if twin_board[i, j] != 0 and twin_board[i, j + 1] != 0:
+                    twin_board[i, j], twin_board[i, j + 1] = twin_board[i, j + 1], twin_board[i, j]
+                    return Board(twin_board)
+
+    def __eq__(self, board): # сравнивает две доски с помощью оператора сравнения
+        return np.array_equal(self.board, board.board)
+
+
+    def __iter__(self):
+        self._neighbors = []
+        i, j = self.blank_pos
+        moves = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        for i_move, j_move in moves:
+            new_i = i + i_move
+            new_j = j + j_move
+            if 0 <= new_i < self.N and 0 <= new_j < self.N:
+                new_board = self.board.copy()
+                new_board[i, j], new_board[new_i, new_j] = new_board[new_i, new_j], new_board[i, j]
+                self._neighbors.append(Board(new_board))
+
+        self._current = 0
+        return self
+
+
+    def __next__(self):
+        if self._current >= len(self._neighbors):
+            raise StopIteration
+        result = self._neighbors[self._current]
+        self._current += 1
+        return result
