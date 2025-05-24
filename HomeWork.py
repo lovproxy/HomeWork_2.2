@@ -197,7 +197,7 @@ class Board:
 
 
     def __str__(self):
-        return str(self.board).replace('[', ' ').replace(']', ' ')
+        return str(self.board).replace('[', ' ').replace(']', ' ').replace('0', ' ')
 
     def dimension(self):# возвращает размер доски N
         return self.N
@@ -270,3 +270,47 @@ class Board:
         result = self._neighbors[self._current]
         self._current += 1
         return result
+
+def factorial_borders():
+    """
+    Создаёт список смещений для глобальных кодов.
+    OFFSETS[N-2] — это сумма всех k! для досок размером от 2 до (N-1).
+    """
+    borders = [0]
+    total = 0
+    for N in range(2, 21):  # считаем факториалы для длин досок от 2 (так как это минимальная длина доски) до 20 (можно увеличить, но числа уже очень большие)
+        n = N * N
+        total += math.factorial(n)
+        borders.append(total)
+    return borders
+
+
+Borders = factorial_borders()
+
+
+# Функция, которая преобразует код и размерность в доску. Работает по принципу факториального кодирования
+def code_and_n_to_board(code, n):
+
+    numbers = list(range(n))  # доступные числа от 0 до n-1
+    board = []
+
+    for i in range(n - 1, -1, -1):
+        f = math.factorial(i)
+        index = code // f
+        code %= f
+        board.append(numbers.pop(index))  # выбираем index-й элемент
+    return board
+
+
+ # Определяет размерность доски и вызывает функцию code_and_n_to_board
+def code_to_board(code):
+    for N in range(2, len(Borders)):
+        start = Borders[N - 2] + 1  # начальный код для доски размера N×N
+        end = Borders[N - 1]  # конечный код для доски размера N×N (включительно)
+
+        if start <= code <= end:
+            code = code - start  # факториальный ранг внутри этой размерности
+            n = N * N  # длина перестановки
+            return code_and_n_to_board(code, n)
+
+    raise ValueError("Слишком большой глобальный номер: превышает поддерживаемый диапазон.")
