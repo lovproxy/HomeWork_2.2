@@ -309,5 +309,11 @@ def code_to_board(code):
             n = N * N  # длина перестановки
             return code_and_n_to_board(code, n)
 
-    raise ValueError("Слишком большой глобальный номер: превышает поддерживаемый диапазон.")
+    raise ValueError("Слишком большой номер: превышает поддерживаемый диапазон.")
+
+
+for i in range (1, 25):
+    A = Board(code_to_board(i))
+    print(A)
+
 
