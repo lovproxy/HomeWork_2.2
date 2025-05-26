@@ -1,5 +1,9 @@
 import math
 import numpy as np
+import random
+import matplotlib.pyplot as plt
+import time
+
 class BinaryHeap:
     def __init__(self): #инициализация кучи
         self.heap = []
@@ -104,63 +108,62 @@ class Solver():
         return self.solution_moves if self.solved else -1
 
     def solve(self): # основной метод реализации алгортим A*
-        if self.board.is_goal(): #проверка на начальное состояние
+        if self.board.isGoal(): #проверка на начальное состояние
             self.solved = True #решение есть
             self.solution_moves = 0 #количество шагов для решения 0
             self.solution = [self.board] #состояние доски окончательное
             return
 
         if self.heap_type == 'heap':
-            HeapClass = BinaryHeap #Инициализация бинарной кучи
+            main = BinaryHeap()  # Создаем экземпляр класса кучи
+            twin = BinaryHeap()  # Создаем экземпляр класса кучи
         else:
-            HeapClass = SortedArray #Инициализация отсортированного массива
+            main = SortedArray()  # Создаем экземпляр класса отсортированного массива
+            twin = SortedArray()  # Создаем экземпляр класса отсортированного массива
 
-        main = HeapClass #основная куча
-        twin = HeapClass #куча для проверки на решаемость
-
-        main.insert(Search(self.board,0,None,self.priority)) #Добавление начальных состояний в основную кучу
-        twin.insert(Search(self.board.twin(),0, None, self.priority)) #Добавление начальных состояний в дополнительную кучу
+        main.insert(Search(self.board, 0, None, self.priority))
+        twin.insert(Search(self.board.twin(), 0, None, self.priority))
 
         while True: #основной цикл поиска
             if not main.is_empty(): #проверка, пуста ли куча
                 current = main.pop() #достаём элемент кучи
                 self.search_nodes += 1 #добавление счётчика состояния игры
 
-                if current.board.is_goal(): #проверка на решение в основной куче
+                if current.board.isGoal(): #проверка на решение в основной куче
                     self.solved = True
-                    self.solution_moves = current.moves()
+                    self.solution_moves = current.moves
                     self.solution = []
                     node = current
                     while node:
                         self.solution.insert(0, node.board)
-                        node = node.previous()
+                        node = node.previous
                     return
 
                 #цикл обрабатывающий соседей для основной кучи
-                for x in current.board.neighbors():
-                    neighbor_key = self.board_to_key(x)
+                for neighbor_board in current.board:
+                    neighbor_key = self.board_to_key(neighbor_board)
                     if neighbor_key not in self.visited:
                         self.visited[neighbor_key] = True
-                        new_node = Search(x, current.moves + 1, current, self.priority)
+                        new_node = Search(neighbor_board, current.moves + 1, current, self.priority)
                         main.insert(new_node)
 
             #проверка очереди на решаемость
             if not twin.is_empty(): #если куча не пустая
                 twin_cur = twin.pop()
-                if twin_cur.board.is_goal():
+                if twin_cur.board.isGoal():
                     self.solved = False
                     return
 
                 # цикл обрабатывающий соседей
-                for x in twin_cur.board.neighbors():
-                    neighbor_key = self.board_to_key(x)
+                for neighbor_board in twin_cur.board:
+                    neighbor_key = self.board_to_key(neighbor_board)
                     if neighbor_key not in self.visited:
                         self.visited[neighbor_key] = True
-                        new_node = Search(x, twin_cur.moves + 1, twin_cur, self.priority)
-                        main.insert(new_node)
+                        new_node = Search(neighbor_board, twin_cur.moves + 1, twin_cur, self.priority)
+                        twin.insert(new_node)
 
     def board_to_key(self, board):#преобразование доски в ключ
-        return tuple(tuple(row) for row in board.blocks)
+        return tuple(tuple(row) for row in board.board)
 
     def __iter__(self):
         if self.solution:
@@ -311,3 +314,187 @@ def code_to_board(code):
 
     raise ValueError("Слишком большой глобальный номер: превышает поддерживаемый диапазон.")
 
+
+def analyze_heuristics_with_codes(start_code, end_code): #Анализирует производительность двух эвристик на заданных кодах состояний
+    manhattan_moves = []
+    hamming_moves = []
+
+    for code in range(start_code, end_code + 1):
+        #Пробуем проверить состояние
+        try:
+            board_numbers = code_to_board(code)
+            N = int(math.sqrt(len(board_numbers)))
+            board = np.array(board_numbers).reshape((N, N))
+            board = Board(board)
+
+            # Тест с Манхэтонновским расстоянием
+            solver = Solver(board, 'manhattan', 'heap')
+
+            if solver.isSolvable(): #Проверка на решаемость Манхэттоном
+                manhattan_moves.append(solver.moves())
+            else:
+                manhattan_moves.append(-1)
+
+            # Тест с расстоянием Хэмминга
+            solver = Solver(board, 'hamming', 'heap')
+
+            if solver.isSolvable(): #Проверка на решаемость Хээмингом
+                hamming_moves.append(solver.moves())
+            else:
+                hamming_moves.append(-1)
+
+        except:
+            print(f"Пропуск кода {code}")
+            continue
+
+    return manhattan_moves, hamming_moves
+
+#Построим графики для анализа зависимости количества ходов от состояния игры
+def plot_heuristics_comparison(manhattan_moves, hamming_moves, start_code):
+
+    plt.figure(figsize=(15, 10))
+
+    # Фильтруем нерешаемые состояния
+    valid_indices = [i for i in range(len(manhattan_moves))
+                     if manhattan_moves[i] != -1 and hamming_moves[i] != -1]
+
+    manhattan_valid = [manhattan_moves[i] for i in valid_indices]
+    hamming_valid = [hamming_moves[i] for i in valid_indices]
+    codes = [i + start_code for i in valid_indices]
+
+    # График количества ходов
+    plt.subplot(2, 1, 1)
+    plt.plot(codes, manhattan_valid, 'b-', label='Манхэттенское расстояние')
+    plt.plot(codes, hamming_valid, 'r-', label='Расстояние Хэмминга')
+    plt.xlabel('Код состояния')
+    plt.ylabel('Количество ходов')
+    plt.title('Сравнение количества ходов')
+    plt.legend()
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
+
+def main_analysis():# основная функция для анализа
+    global Borders
+    Borders = factorial_borders() #получаем количество состояний для досок
+
+    # Анализируем первые 100 состояний для досок 3x3
+    start_code = Borders[1] + 1  # Начало кодов для досок 3x3
+    end_code = start_code + 99  # Берем 100 состояний
+
+    print("Анализ эвристик...")
+    manhattan_moves, hamming_moves = analyze_heuristics_with_codes(start_code, end_code)
+
+    print("Построение графика...")
+    plot_heuristics_comparison(manhattan_moves, hamming_moves, start_code)
+
+
+def read_board_from_file(filename): #Считываем начальное состояние доски из файла
+    try:
+        with open(filename, 'r') as f:
+            N = int(f.readline().strip()) #Считываем первый параметр. Т.е. Размерность доски
+            # Читаем саму доску
+            board = []
+            for _ in range(N):
+                row = list(map(int, f.readline().strip().split()))
+                if len(row) != N:
+                    raise ValueError(f"Неверное количество чисел в строке. Ожидалось {N}, получено {len(row)}")
+                board.append(row)
+
+            # Проверяем, что все числа от 0 до N*N-1 присутствуют
+            numbers = set(range(N * N))
+            for row in board:
+                for num in row:
+                    if num not in numbers:
+                        raise ValueError(f"Неверное число на доске: {num}")
+                    numbers.remove(num)
+            return np.array(board)
+
+    except:
+        return None
+
+
+def solve_from_file(filename, priority='manhattan', heap_type='heap'): #Запускаем решение задачи для состояния из файла
+    # Читаем доску из файла
+    board_array = read_board_from_file(filename)
+    if board_array is None:
+        return
+
+    # Создаем объект доски
+    board = Board(board_array)
+
+    print("Начальное состояние доски:")
+    print(board)
+
+    # Создаем решатель и ищем решение
+    solver = Solver(board, priority, heap_type)
+
+    if solver.isSolvable():
+        print(f"\nРешение найдено за {solver.moves()} ходов:")
+        for i, step in enumerate(solver):
+            print(f"\nШаг {i}:")
+            print(step)
+    else:
+        print("\nЗадача не имеет решения!")
+
+
+def compare_solvers(start_code, end_code):#Сравнивает время выполнения двух решателей на одинаковых состояниях
+    heap_times = []
+    array_times = []
+
+    print("Сравнение решателей...")
+    for code in range(start_code, end_code + 1):
+        try:
+            # Создаем доску из кода
+            board_numbers = code_to_board(code)
+            N = int(math.sqrt(len(board_numbers)))
+            board = np.array(board_numbers).reshape((N, N))
+            board = Board(board)
+
+            # Тест с бинарной кучей
+            start_time = time.time()
+            solver_heap = Solver(board, 'manhattan', 'heap')
+            heap_time = time.time() - start_time
+
+            # Тест с отсортированным массивом
+            start_time = time.time()
+            solver_array = Solver(board, 'manhattan', 'array')
+            array_time = time.time() - start_time
+
+            # Проверяем, что оба решателя нашли решение
+            if solver_heap.isSolvable() and solver_array.isSolvable():
+                heap_times.append(heap_time)
+                array_times.append(array_time)
+
+        except:
+            continue
+
+    return heap_times, array_times
+
+
+def analyze_solvers():#Основная функция для анализа решателей
+    global Borders
+    Borders = factorial_borders()
+
+    # Анализируем первые 50 состояний для досок 3x3
+    start_code = Borders[1] + 1  # Начало кодов для досок 3x3
+    end_code = start_code + 49  # Берем 50 состояний
+
+    heap_times, array_times, valid_codes = compare_solvers(start_code, end_code)
+
+    print("\nСтатистика:")
+    print(f"Бинарная куча:")
+    print(f"  Среднее время: {sum(heap_times) / len(heap_times):.4f} сек")
+    print(f"  Общее время: {sum(heap_times):.4f} сек")
+
+    print(f"\nОтсортированный массив:")
+    print(f"  Среднее время: {sum(array_times) / len(array_times):.4f} сек")
+    print(f"  Общее время: {sum(array_times):.4f} сек")
+
+
+if __name__ == '__main__':
+    solve_from_file('board.txt')
+    main_analysis()
+    analyze_solvers()
