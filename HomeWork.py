@@ -482,7 +482,7 @@ def analyze_solvers():#Основная функция для анализа р�
     start_code = Borders[1] + 1  # Начало кодов для досок 3x3
     end_code = start_code + 49  # Берем 50 состояний
 
-    heap_times, array_times, valid_codes = compare_solvers(start_code, end_code)
+    heap_times, array_times = compare_solvers(start_code, end_code)
 
     print("\nСтатистика:")
     print(f"Бинарная куча:")
@@ -496,5 +496,5 @@ def analyze_solvers():#Основная функция для анализа р�
 
 if __name__ == '__main__':
     solve_from_file('board.txt')
-    main_analysis()
     analyze_solvers()
+    main_analysis()
